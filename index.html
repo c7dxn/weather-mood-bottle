@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球微型即時天氣心情瓶</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 專業級完整簡體轉台灣繁體字庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
+</head>
+<body class="cloudy-theme">
+    <!-- 背景遮罩層 -->
+    <div class="bg-overlay"></div>
+
+    <!-- 1. 標題與搜尋區 -->
+    <header class="header-section">
+        <h1>全球微型即時天氣心情瓶</h1>
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="輸入城市或國家 (如: 台北, 冰島, 委內瑞拉)...">
+            <button id="searchBtn">搜尋</button>
+            <button id="randomBtn" title="隨機撿起一瓶世界天氣">隨機</button>
+        </div>
+        <div class="quick-cities">
+            <button class="city-chip" data-city="Taipei">台北</button>
+            <button class="city-chip" data-city="Tokyo">東京</button>
+            <button class="city-chip" data-city="New York">紐約</button>
+            <button class="city-chip" data-city="London">倫敦</button>
+            <button class="city-chip" data-city="Paris">巴黎</button>
+            <button class="city-chip" data-city="Seoul">首爾</button>
+        </div>
+    </header>
+
+    <!-- 2. 主視覺與心情瓶區 -->
+    <main class="main-section">
+        <div id="weatherCard" class="weather-card glass-card">
+            <div class="city-header">
+                <h2 id="cityNameDisplay">台北</h2>
+                <span id="cityEnglishDisplay" class="city-english">Taipei</span>
+            </div>
+
+            <!-- 當地即時時間與日夜狀態 -->
+            <div class="local-time-badge" id="localTimeDisplay">當地時間載入中...</div>
+
+            <!-- 互動功能 5：雙城心靈時差與溫差對比 -->
+            <div class="home-compare-box">
+                <div class="home-compare-top">
+                    <span id="homeCityLabel">我的基準城市：尚未設定</span>
+                    <button type="button" id="setHomeCityBtn" class="mini-action-btn">設為我的城市</button>
+                </div>
+                <p id="homeCompareText" class="home-compare-text" style="display: none;"></p>
+            </div>
+            
+            <div class="temp-info">
+                <img id="weatherIcon" src="" alt="天氣圖示" style="display: none;">
+                <span id="tempDisplay">--°C</span>
+                <span id="conditionDisplay">載入中...</span>
+            </div>
+
+            <div class="weather-details">
+                <div class="detail-item">
+                    <span>體感溫度</span>
+                    <strong id="feelsLikeDisplay">--°C</strong>
+                </div>
+                <div class="detail-item">
+                    <span>濕度</span>
+                    <strong id="humidityDisplay">--%</strong>
+                </div>
+                <div class="detail-item">
+                    <span>風速</span>
+                    <strong id="windDisplay">-- m/s</strong>
+                </div>
+                <div class="detail-item">
+                    <span>氣壓</span>
+                    <strong id="pressureDisplay">-- hPa</strong>
+                </div>
+            </div>
+
+            <!-- 心情瓶療癒小語 + 白噪音播放器 + 正念呼吸 -->
+            <div class="mood-bottle">
+                <div class="bottle-header">
+                    <div class="bottle-title">今日氣候心情瓶</div>
+                    <div class="bottle-controls">
+                        <button type="button" id="breatheToggleBtn" class="sound-btn" title="開啟/關閉 4-7-8 正念呼吸引導">正念呼吸</button>
+                        <button type="button" id="soundToggleBtn" class="sound-btn" title="開啟/關閉天氣白噪音">聆聽環境音</button>
+                    </div>
+                </div>
+                <p id="moodMessage">正在為您準備今日的療癒小語...</p>
+
+                <!-- 互動功能 3：4-7-8 正念呼吸引導區 -->
+                <div id="breathingPanel" class="breathing-panel" style="display: none;">
+                    <div class="breathing-visual">
+                        <div id="breathingCircle" class="breathing-circle">準備</div>
+                    </div>
+                    <div class="breathing-info">
+                        <div id="breathingPhaseText" class="breathing-phase">點擊開始，跟隨節奏調節自律神經</div>
+                        <div class="breathing-sub">吸氣 4 秒・屏息 7 秒・吐氣 8 秒</div>
+                        <button type="button" id="breathingActionBtn" class="mini-action-btn">開始練習</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 醫資專業加值：氣象身心健康提醒 + 互動功能 1：身心狀態自評 -->
+            <div class="health-box">
+                <div class="health-title">氣象身心健康提醒</div>
+                <p id="healthAdvice">正在分析當地氣壓與溫濕度對身心的影響...</p>
+
+                <div class="symptom-checkin">
+                    <div class="symptom-prompt">此刻身體感受自評（點擊獲得專屬氣壓衛教）：</div>
+                    <div class="symptom-buttons" id="symptomButtons">
+                        <button type="button" class="symptom-btn" data-symptom="精神飽滿">精神飽滿</button>
+                        <button type="button" class="symptom-btn" data-symptom="微倦想睡">微倦想睡</button>
+                        <button type="button" class="symptom-btn" data-symptom="頭脹偏頭痛">頭脹偏頭痛</button>
+                        <button type="button" class="symptom-btn" data-symptom="關節痠痛">關節痠痛</button>
+                    </div>
+                    <div id="symptomFeedback" class="symptom-feedback" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. 互動留言板區（支援城市分流、心情貼紙 + 互動功能 2：明信片匯出） -->
+    <section class="message-section glass-card">
+        <div class="message-header">
+            <h3><span id="msgCityTitle">台北</span>・跨時空心情膠囊</h3>
+            <button type="button" id="exportPostcardBtn" class="mini-action-btn" title="將目前城市天氣與心情匯出為明信片圖檔">匯出明信片</button>
+        </div>
+        
+        <!-- 心情貼紙選擇器 -->
+        <div class="mood-tags" id="moodTags">
+            <button type="button" class="mood-tag active" data-tag="愜意">愜意</button>
+            <button type="button" class="mood-tag" data-tag="感性">感性</button>
+            <button type="button" class="mood-tag" data-tag="充滿希望">希望</button>
+            <button type="button" class="mood-tag" data-tag="想家">想家</button>
+        </div>
+
+        <div class="message-input-group">
+            <input type="text" id="messageInput" placeholder="留下給這座城市的祝福或此刻心情...">
+            <button id="postMsgBtn">儲存</button>
+        </div>
+        <ul id="messageList"></ul>
+    </section>
+
+    <!-- 4. 互動功能 4：世界氣候集章護照 -->
+    <section class="passport-section glass-card">
+        <div class="passport-header" id="passportToggleHeader">
+            <h3>世界氣候集章護照（已收集 <span id="passportCount">0</span> 座城市）</h3>
+            <span id="passportToggleText" class="passport-toggle-hint">展開足跡</span>
+        </div>
+        <div id="passportBody" class="passport-body" style="display: none;">
+            <p class="passport-desc">點擊任一城市印章，即可再次傳送至該地查看即時氣候。</p>
+            <div id="passportStamps" class="passport-stamps"></div>
+        </div>
+    </section>
+
+    <!-- 5. 系統頁尾區 -->
+    <footer class="footer-section">
+        <p>Powered by OpenWeatherMap | 輔仁大學醫資學程 第 11 組</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
