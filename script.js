@@ -1,5 +1,6 @@
 const API_KEY = "72dfce0768eb14284481f07a479bbbec";
 const searchBtn = document.getElementById("searchBtn");
+const geoBtn = document.getElementById("geoBtn");
 const randomBtn = document.getElementById("randomBtn");
 const cityInput = document.getElementById("cityInput");
 const moodMessage = document.getElementById("moodMessage");
@@ -16,7 +17,6 @@ let currentActiveCity = "臺北市";
 let selectedMoodTag = "愜意";
 let currentWeatherType = "Clouds";
 
-// 儲存當前城市完整氣象狀態（供身心自評、雙城對比、明信片匯出使用）
 let currentCityState = {
     name: "臺北市",
     englishName: "Taipei",
@@ -298,7 +298,7 @@ function generateHealthAdvice(temp, humidity, pressure, weatherCondition) {
 }
 
 // ==========================================
-// 互動功能 1：今日身心狀態自評（結合即時氣壓衛教）
+// 互動功能 1：今日身心狀態自評
 // ==========================================
 const symptomFeedbackEl = document.getElementById("symptomFeedback");
 
@@ -358,21 +358,18 @@ breatheToggleBtn.addEventListener("click", () => {
 function runBreathingCycle() {
     if (!isBreathingActive) return;
 
-    // 階段一：吸氣 4 秒
     breathingCircle.className = "breathing-circle inhale";
     breathingCircle.innerText = "吸氣";
     breathingPhaseText.innerText = "用鼻子緩慢深吸氣（4 秒）...";
 
     breathingTimer = setTimeout(() => {
         if (!isBreathingActive) return;
-        // 階段二：屏息 7 秒
         breathingCircle.className = "breathing-circle hold";
         breathingCircle.innerText = "屏息";
         breathingPhaseText.innerText = "輕柔屏住呼吸，感受平靜（7 秒）...";
 
         breathingTimer = setTimeout(() => {
             if (!isBreathingActive) return;
-            // 階段三：吐氣 8 秒
             breathingCircle.className = "breathing-circle exhale";
             breathingCircle.innerText = "吐氣";
             breathingPhaseText.innerText = "用嘴巴緩緩吐盡濁氣（8 秒）...";
@@ -518,7 +515,6 @@ exportPostcardBtn.addEventListener("click", () => {
     canvas.height = 540;
     const ctx = canvas.getContext("2d");
 
-    // 1. 繪製背景漸層
     const grad = ctx.createLinearGradient(0, 0, 900, 540);
     if (currentCityState.weatherCondition === "Clear") {
         grad.addColorStop(0, "#1e3a8a");
@@ -533,7 +529,6 @@ exportPostcardBtn.addEventListener("click", () => {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 900, 540);
 
-    // 2. 繪製明信片內框與白底卡片
     ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
     ctx.beginPath();
     ctx.roundRect(36, 36, 828, 468, 24);
@@ -543,12 +538,10 @@ exportPostcardBtn.addEventListener("click", () => {
     ctx.lineWidth = 2;
     ctx.strokeRect(54, 54, 792, 432);
 
-    // 3. 標題與郵戳區
     ctx.fillStyle = "#64748b";
     ctx.font = "20px 'DFKai-SB', '標楷體', serif";
     ctx.fillText("全球微型即時天氣心情瓶・跨時空氣候明信片", 82, 102);
 
-    // 右上角郵戳框
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 2;
     ctx.strokeRect(650, 74, 170, 68);
@@ -558,7 +551,6 @@ exportPostcardBtn.addEventListener("click", () => {
     ctx.font = "16px 'DFKai-SB', '標楷體', serif";
     ctx.fillText(`氣壓 ${currentCityState.pressure} hPa`, 666, 128);
 
-    // 4. 城市主視覺名稱與溫度
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 48px 'DFKai-SB', '標楷體', serif";
     ctx.fillText(`${currentCityState.name}`, 82, 185);
@@ -574,14 +566,12 @@ exportPostcardBtn.addEventListener("click", () => {
     ctx.font = "bold 38px 'DFKai-SB', '標楷體', serif";
     ctx.fillText(`${currentCityState.temp}°C ・ ${currentCityState.weatherDesc}`, 82, 242);
 
-    // 分隔線
     ctx.strokeStyle = "#e2e8f0";
     ctx.beginPath();
     ctx.moveTo(82, 272);
     ctx.lineTo(818, 272);
     ctx.stroke();
 
-    // 5. 決定明信片內文（優先採用使用者輸入框文字或該城市最新留言，否則採用當日心情瓶小語）
     let messages = JSON.parse(localStorage.getItem("weatherMessagesV2")) || [];
     const cityMsgs = messages.filter(m => m.city === currentCityState.name);
     const typedInput = messageInput.value.trim();
@@ -602,17 +592,14 @@ exportPostcardBtn.addEventListener("click", () => {
     ctx.font = "bold 21px 'DFKai-SB', '標楷體', serif";
     ctx.fillText(cardLabel, 82, 314);
 
-    // 自動換行繪製內文
     ctx.fillStyle = "#1e293b";
     ctx.font = "24px 'DFKai-SB', '標楷體', serif";
     wrapCanvasText(ctx, cardContent, 82, 354, 730, 36);
 
-    // 6. 頁尾署名
     ctx.fillStyle = "#94a3b8";
     ctx.font = "17px 'DFKai-SB', '標楷體', serif";
-    ctx.fillText("輔仁大學醫資學程 第 11 組 | 全球微型即時天氣心情瓶", 82, 462);
+    ctx.fillText("輔仁大學醫資學程 第 1 組 | 全球微型即時天氣心情瓶", 82, 462);
 
-    // 觸發圖片下載
     const link = document.createElement("a");
     link.download = `天氣心情瓶_${currentCityState.name}.png`;
     link.href = canvas.toDataURL("image/png");
@@ -637,7 +624,7 @@ function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 // ==========================================
-// 7. 主查詢與畫面渲染流程
+// 7. 主查詢與畫面渲染流程 (支援經緯度直接查詢)
 // ==========================================
 async function fetchWeather(cityQuery) {
     const trimmedQuery = cityQuery.trim();
@@ -676,6 +663,58 @@ async function fetchWeather(cityQuery) {
         if (searchId === currentSearchId) {
             alert(error.message);
             moodMessage.innerText = "請重新輸入有效的城市或國家名稱喔！";
+        }
+    }
+}
+
+async function fetchWeatherByCoords(lat, lon) {
+    const searchId = ++currentSearchId;
+    moodMessage.innerText = "正在透過GPS定位您的即時座標...";
+    healthAdvice.innerText = "正在分析當地氣象生理指標...";
+    resetSymptomUI();
+
+    try {
+        const weatherResponse = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=zh_tw&appid=${API_KEY}`
+        );
+
+        if (!weatherResponse.ok) {
+            throw new Error("無法取得您所在座標的氣象資料！");
+        }
+
+        const weatherData = await weatherResponse.json();
+        if (searchId !== currentSearchId) return;
+
+        // 反查當地中文地名
+        let displayName = weatherData.name || "您的位置";
+        let englishName = weatherData.name || "";
+
+        try {
+            const revUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh-TW`;
+            const revRes = await fetch(revUrl);
+            if (revRes.ok) {
+                const revData = await revRes.json();
+                const addr = revData.address || {};
+                const rawName = addr.city || addr.town || addr.district || addr.county || revData.display_name;
+                if (rawName) {
+                    displayName = toTraditionalChinese(rawName.split(",")[0]);
+                }
+            }
+        } catch (e) {}
+
+        const location = {
+            lat: lat,
+            lon: lon,
+            displayName: displayName,
+            englishName: englishName
+        };
+
+        await updateUI(weatherData, location, searchId);
+
+    } catch (error) {
+        if (searchId === currentSearchId) {
+            alert(error.message);
+            moodMessage.innerText = "定位失敗，請改用手動搜尋或點擊城市！";
         }
     }
 }
@@ -771,7 +810,6 @@ async function updateUI(data, location, searchId) {
 
     healthAdvice.innerText = generateHealthAdvice(temp, humidity, pressure, weatherCondition);
 
-    // 更新全域狀態並連動新互動功能
     currentCityState = {
         name: displayCityName,
         englishName: finalEnglishName,
@@ -862,6 +900,27 @@ function loadMessages() {
 searchBtn.addEventListener("click", () => fetchWeather(cityInput.value));
 cityInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") fetchWeather(cityInput.value);
+});
+
+// GPS 定位按鈕監聽
+geoBtn.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+        alert("您的瀏覽器不支援地理定位功能！");
+        return;
+    }
+    moodMessage.innerText = "正在取得您的 GPS 定位授權...";
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            fetchWeatherByCoords(lat, lon);
+        },
+        (error) => {
+            alert("無法取得您的定位，請確認是否已授權瀏覽器存取位置。");
+            moodMessage.innerText = "定位失敗，請改用手動搜尋或點擊上方城市！";
+        },
+        { timeout: 10000 }
+    );
 });
 
 randomBtn.addEventListener("click", () => {
