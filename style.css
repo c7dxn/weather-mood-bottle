@@ -92,11 +92,12 @@ body.cloudy-theme { background-color: #334155; }
     display: flex;
     justify-content: center;
     width: 100%;
-    gap: 6px;
+    gap: 5px;
 }
 .search-box input {
     flex: 1;
-    padding: 11px 16px;
+    min-width: 0;
+    padding: 11px 14px;
     font-size: 15px;
     border: none;
     border-radius: 25px;
@@ -105,40 +106,31 @@ body.cloudy-theme { background-color: #334155; }
     color: #1e293b;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
-.search-box button#searchBtn {
-    padding: 11px 18px;
+
+/* 搜尋、定位、隨機三顆按鈕統一為相同藍色圓角膠囊樣式 */
+.search-box button#searchBtn,
+.search-box button#geoBtn,
+.search-box button#randomBtn {
+    padding: 11px 14px;
     font-size: 15px;
     font-weight: bold;
     background-color: #3b82f6;
-    color: white;
+    color: #ffffff;
     border: none;
     border-radius: 25px;
     cursor: pointer;
-    transition: background 0.2s;
-    white-space: nowrap;
-}
-.search-box button#searchBtn:hover {
-    background-color: #2563eb;
-}
-.search-box button#randomBtn {
-    padding: 10px 14px;
-    font-size: 14.5px;
-    font-weight: bold;
-    color: #1e293b;
-    background: rgba(255, 255, 255, 0.92);
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: transform 0.2s, background 0.2s;
+    transition: background-color 0.2s, transform 0.2s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     white-space: nowrap;
 }
+.search-box button#searchBtn:hover,
+.search-box button#geoBtn:hover,
 .search-box button#randomBtn:hover {
-    transform: translateY(-2px);
-    background: #ffffff;
+    background-color: #2563eb;
+    transform: translateY(-1px);
 }
 
-/* 熱門城市標籤按鈕 */
+/* 熱門城市標籤按鈕（5顆） */
 .quick-cities {
     margin-top: 12px;
     display: flex;
@@ -152,7 +144,7 @@ body.cloudy-theme { background-color: #334155; }
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 20px;
-    padding: 5px 14px;
+    padding: 5px 15px;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
@@ -206,7 +198,7 @@ body.cloudy-theme { background-color: #334155; }
     color: #475569;
 }
 
-/* 互動功能 5：雙城心靈時差與溫差對比 */
+/* 雙城心靈時差與溫差對比 */
 .home-compare-box {
     margin-top: 10px;
     padding: 8px 12px;
@@ -326,7 +318,7 @@ body.cloudy-theme { background-color: #334155; }
     color: #334155;
 }
 
-/* 互動功能 3：4-7-8 正念呼吸引導面板 */
+/* 4-7-8 正念呼吸引導面板 */
 .breathing-panel {
     margin-top: 12px;
     padding-top: 12px;
@@ -389,7 +381,7 @@ body.cloudy-theme { background-color: #334155; }
     margin-bottom: 2px;
 }
 
-/* 醫資專業：氣象身心健康提醒區塊 + 互動功能 1：身心自評 */
+/* 醫資專業：氣象身心健康提醒區塊 + 身心自評 */
 .health-box {
     background: rgba(240, 253, 244, 0.92);
     padding: 12px 15px;
@@ -572,7 +564,7 @@ body.cloudy-theme { background-color: #334155; }
     border-radius: 4px;
 }
 
-/* 4. 互動功能 4：世界氣候集章護照 */
+/* 4. 世界氣候集章護照 */
 .passport-section {
     padding: 16px 22px;
     margin-bottom: 20px;
