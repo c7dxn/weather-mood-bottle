@@ -20,6 +20,13 @@ let selectedMoodTag = "愜意";
 let currentWeatherType = "Clouds";
 let latestCloudCityMessages = [];
 
+// 為每個訪客產生或取得專屬的唯一識別碼（用於判斷是否為本人留言）
+let myUserId = localStorage.getItem("weatherMyUserId");
+if (!myUserId) {
+    myUserId = 'user_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem("weatherMyUserId", myUserId);
+}
+
 let currentCityState = {
     name: "臺北市",
     englishName: "Taipei",
@@ -625,7 +632,7 @@ function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 // ==========================================
-// 7. 主查詢與畫面渲染流程 (支援經緯度直接查詢)
+// 7. 主查詢與畫面渲染流程
 // ==========================================
 async function fetchWeather(cityQuery) {
     const trimmedQuery = cityQuery.trim();
@@ -832,7 +839,7 @@ async function updateUI(data, location, searchId) {
 }
 
 // ==========================================
-// 8. 雲端同步跨時空心情膠囊（Firebase Realtime Database）
+// 8. 雲端同步跨時空心情膠囊（支援本人編輯與刪除）
 // ==========================================
 document.querySelectorAll(".mood-tag").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -851,7 +858,6 @@ function escapeHTML(str) {
         .replace(/'/g, "&#039;");
 }
 
-// 統一城市名稱鍵值（避免「台北」與「臺北市」分開儲存）
 function normalizeCityKey(cityName) {
     return cityName.replace(/臺/g, "台").trim();
 }
@@ -873,7 +879,8 @@ async function saveAndRenderMessage() {
         tag: selectedMoodTag,
         text: userMsg,
         time: timeStr,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        userId: myUserId // 綁定發布者的專屬 ID
     };
 
     postMsgBtn.disabled = true;
@@ -886,9 +893,7 @@ async function saveAndRenderMessage() {
             body: JSON.stringify(newEntry)
         });
 
-        if (!res.ok) {
-            throw new Error("雲端儲存失敗，請確認 Firebase 規則是否已設為測試模式。");
-        }
+        if (!res.ok) throw new Error("雲端儲存失敗");
 
         messageInput.value = "";
         await loadMessages();
@@ -897,6 +902,53 @@ async function saveAndRenderMessage() {
     } finally {
         postMsgBtn.disabled = false;
         postMsgBtn.innerText = "儲存";
+    }
+}
+
+// 刪除自己的留言
+async function deleteCloudMessage(messageId) {
+    if (!confirm("確定要刪除這則心情膠囊嗎？")) return;
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL}/capsules/${messageId}.json`, {
+            method: "DELETE"
+        });
+        if (!res.ok) throw new Error("刪除失敗");
+        await loadMessages();
+    } catch (err) {
+        alert("刪除失敗，請稍後再試。");
+    }
+}
+
+// 編輯自己的留言
+async function editCloudMessage(messageId, currentText) {
+    const newText = prompt("修改您的心情膠囊內容：", currentText);
+    if (newText === null) return;
+    const trimmed = newText.trim();
+    if (!trimmed) {
+        alert("內容不能為空白！");
+        return;
+    }
+
+    const now = new Date();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const timeStr = `${month}/${day} ${hours}:${minutes} (已編輯)`;
+
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL}/capsules/${messageId}.json`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                text: trimmed,
+                time: timeStr
+            })
+        });
+        if (!res.ok) throw new Error("修改失敗");
+        await loadMessages();
+    } catch (err) {
+        alert("編輯失敗，請稍後再試。");
     }
 }
 
@@ -935,15 +987,28 @@ async function loadMessages() {
             const safeTag = escapeHTML((msg.tag || "愜意").replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "") || "愜意");
             const safeTime = escapeHTML(msg.time || "");
             const safeText = escapeHTML(msg.text || "");
+            
+            // 判斷是否為「我自己」發布的留言
+            const isMyMessage = (msg.userId === myUserId);
+
+            // 只有自己的留言才會顯示「編輯」與「刪除」按鈕
+            const actionButtonsHtml = isMyMessage ? `
+                <div class="msg-action-btns">
+                    <button class="edit-btn" onclick="editCloudMessage('${msg.id}', '${safeText.replace(/'/g, "\\'")}')" title="編輯留言">編輯</button>
+                    <button class="delete-btn" onclick="deleteCloudMessage('${msg.id}')" title="刪除留言">✕</button>
+                </div>
+            ` : '';
+
             return `
                 <li>
                     <div class="msg-content">
                         <div class="msg-meta">
                             <span class="msg-tag-badge">${safeTag}</span>
-                            <span class="msg-time">留存於 ${safeTime}</span>
+                            <span class="msg-time">留存於 ${safeTime}${isMyMessage ? ' (我)' : ''}</span>
                         </div>
                         <span>${safeText}</span>
                     </div>
+                    ${actionButtonsHtml}
                 </li>
             `;
         }).join("");
