@@ -317,16 +317,16 @@ document.querySelectorAll(".symptom-btn").forEach(btn => {
         let advice = "";
 
         if (symptom === "精神飽滿") {
-            advice = `目前 ${name} 氣壓 ${pressure} hPa、氣溫 ${temp}°C，您的生理節律與環境契合度極佳！建議把握專注力高峰處理重要任務，並維持每小時起身飲水習慣。`;
+            advice = `目前${name}氣壓 ${pressure} hPa、氣溫 ${temp}°C，您的生理節律與環境契合度極佳！建議把握專注力高峰處理重要任務，並維持每小時起身飲水習慣。`;
         } else if (symptom === "微倦想睡") {
             advice = `當濕度達 ${humidity}% 或氣壓波動時，副交感神經容易占上風造成嗜睡。建議起身做 3 分鐘擴胸伸展、補充 250ml 常溫開水，或開啟上方「正念呼吸」重整思緒。`;
         } else if (symptom === "頭脹偏頭痛") {
             advice = pressure <= 1008
-                ? `偵測到 ${name} 氣壓偏低（${pressure} hPa），低氣壓易使腦部血管擴張誘發偏頭痛。建議遠離強光螢幕、溫敷後頸風池穴 5 分鐘，並減少含糖或高咖啡因飲品。`
+                ? `偵測到${name}氣壓偏低（${pressure} hPa），低氣壓易使腦部血管擴張誘發偏頭痛。建議遠離強光螢幕、溫敷後頸風池穴 5 分鐘，並減少含糖或高咖啡因飲品。`
                 : `目前氣壓為 ${pressure} hPa，若仍感頭脹，可能與溫差（${temp}°C）或肩頸緊繃有關。建議閉目休息、緩慢深呼吸並適度補充水分。`;
         } else if (symptom === "關節痠痛") {
             advice = humidity >= 75 || temp <= 16
-                ? `目前 ${name} 濕度 ${humidity}%、氣溫 ${temp}°C，濕冷環境易使關節滑液黏稠度增加。建議局部熱敷 15 分鐘並進行和緩的關節活動度伸展。`
+                ? `目前${name}濕度 ${humidity}%、氣溫 ${temp}°C，濕冷環境易使關節滑液黏稠度增加。建議局部熱敷 15 分鐘並進行和緩的關節活動度伸展。`
                 : `目前氣壓 ${pressure} hPa、濕度 ${humidity}%，建議避免久坐固定姿勢，適度熱敷與溫和伸展可有效緩解肌筋膜緊繃。`;
         }
 
@@ -685,7 +685,6 @@ async function fetchWeatherByCoords(lat, lon) {
         const weatherData = await weatherResponse.json();
         if (searchId !== currentSearchId) return;
 
-        // 反查當地中文地名
         let displayName = weatherData.name || "您的位置";
         let englishName = weatherData.name || "";
 
@@ -788,21 +787,21 @@ async function updateUI(data, location, searchId) {
     if (weatherCondition === "Clear") {
         themeClass = "sunny-theme";
         moodText = localTime.isNight
-            ? `${displayCityName} 現在是深夜 ${localTime.timeStr}，繁星點點、夜空晴朗，願你有個安穩的好夢。`
-            : `${displayCityName} 今天陽光普照，適合出去走走，感受這座城市的活力！`;
+            ? `${displayCityName}現在是深夜 ${localTime.timeStr}，繁星點點、夜空晴朗，願你有個安穩的好夢。`
+            : `${displayCityName}今天陽光普照，適合出去走走，感受這座城市的活力！`;
     } else if (weatherCondition === "Rain" || weatherCondition === "Drizzle" || weatherCondition === "Thunderstorm") {
         themeClass = "rainy-theme";
         moodText = localTime.isNight
-            ? `${displayCityName} 深夜正下著雨（${localTime.timeStr}），聽著雨滴敲打窗櫺，最適合泡杯熱茶放鬆思緒。`
-            : `${displayCityName} 外面正下著雨，帶把傘，在窗邊享受一杯熱咖啡的寧靜吧。`;
+            ? `${displayCityName}深夜正下著雨（${localTime.timeStr}），聽著雨滴敲打窗櫺，最適合泡杯熱茶放鬆思緒。`
+            : `${displayCityName}外面正下著雨，帶把傘，在窗邊享受一杯熱咖啡的寧靜吧。`;
     } else if (weatherCondition === "Snow") {
         themeClass = "cloudy-theme";
-        moodText = `${displayCityName} 正在飄雪，記得添件保暖衣物，享受這片銀白世界的浪漫。`;
+        moodText = `${displayCityName}正在飄雪，記得添件保暖衣物，享受這片銀白世界的浪漫。`;
     } else {
         themeClass = "cloudy-theme";
         moodText = localTime.isNight
-            ? `${displayCityName} 已經來到 ${localTime.timeStr}，夜色微涼，忙碌了一天也別忘了給自己一個微笑。`
-            : `${displayCityName} 雲層有點厚，微風徐徐，是個適合沉思與專注的好天氣。`;
+            ? `${displayCityName}已經來到 ${localTime.timeStr}，夜色微涼，忙碌了一天也別忘了給自己一個微笑。`
+            : `${displayCityName}雲層有點厚，微風徐徐，是個適合沉思與專注的好天氣。`;
     }
 
     document.body.className = localTime.isNight ? `${themeClass} night-mode` : themeClass;
@@ -902,7 +901,6 @@ cityInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") fetchWeather(cityInput.value);
 });
 
-// GPS 定位按鈕監聽
 geoBtn.addEventListener("click", () => {
     if (!navigator.geolocation) {
         alert("您的瀏覽器不支援地理定位功能！");
