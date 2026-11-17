@@ -502,16 +502,24 @@ function renderPassportStamps() {
     passportCount.innerText = stamps.length;
 
     if (stamps.length === 0) {
-        passportStamps.innerHTML = `<span style="font-size:13px; color:#64748b;">尚未收集任何城市印章，試著搜尋或點擊「隨機」探索世界吧！</span>`;
+        passportStamps.innerHTML = `<span style="font-size:13px; color:#64748b;" data-i18n="passportEmpty">${currentLang === "en" ? "No city stamps collected yet!" : "尚未收集任何城市印章！"}</span>`;
         return;
     }
 
-    passportStamps.innerHTML = stamps.map(s => `
-        <button type="button" class="stamp-card" onclick="fetchWeather('${s.english || s.city}')" title="點擊傳送至${s.city}">
-            <span class="stamp-city">${s.city} ${s.temp}°C</span>
-            <span class="stamp-meta">${s.desc}・${s.date}</span>
-        </button>
-    `).join("");
+    const isEn = (currentLang === "en");
+
+    passportStamps.innerHTML = stamps.map(s => {
+        // 取得對應的英文城市與英文天氣
+        const cityName = isEn ? (s.english || cityEnDict[s.city] || s.city) : s.city;
+        const weatherDesc = isEn ? (weatherDescDict[s.desc] || s.desc) : s.desc;
+
+        return `
+            <button type="button" class="stamp-card" onclick="fetchWeather('${s.english || s.city}')">
+                <span class="stamp-city">${cityName} ${s.temp}°C</span>
+                <span class="stamp-meta">${weatherDesc}・${s.date}</span>
+            </button>
+        `;
+    }).join("");
 }
 
 // ==========================================
@@ -836,6 +844,7 @@ async function updateUI(data, location, searchId) {
 
     msgCityTitle.innerText = displayCityName;
     await loadMessages();
+    if (currentLang === "en") applyFullLanguage();
 }
 
 // ==========================================
@@ -1070,3 +1079,334 @@ window.addEventListener("DOMContentLoaded", () => {
     renderPassportStamps();
     fetchWeather("台北");
 });
+// ==========================================
+// 100% 完美修復版：中英文雙語全局切換模組
+// ==========================================
+const translations = {
+    zh: {
+        appTitle: "全球微型即時天氣心情瓶",
+        searchPlaceholder: "請輸入城市或國家（如 台北、Tokyo）...",
+        searchBtn: "搜尋",
+        geoBtn: "目前位置",
+        randomBtn: "隨機探索",
+        cities: ["台北", "東京", "紐約", "倫敦", "巴黎"],
+        setHomeBtn: "設為我的城市",
+        feelsLike: "體感溫度",
+        humidity: "濕度",
+        wind: "風速",
+        pressure: "氣壓",
+        moodBoxTitle: "今日氣候心情瓶",
+        breatheBtn: "正念呼吸",
+        soundBtn: "聆聽環境音",
+        soundPlaying: "環境音播放中",
+        healthBoxTitle: "氣象身心健康提醒",
+        symptomTitle: "此刻身體感受自評（點擊獲得專屬氣壓衛教）：",
+        symptoms: ["精神飽滿", "微倦想睡", "頭脹偏頭痛", "關節痠痛"],
+        postcardBtn: "匯出明信片",
+        moodTags: ["愜意", "感性", "希望", "想家"],
+        msgPlaceholder: "留下給這座城市的祝福或此刻心情...",
+        postBtn: "儲存",
+        passportTitle: "世界氣候集章護照",
+        passportExpand: "展開足跡",
+        passportCollapse: "收合足跡",
+        footerText: "輔仁大學醫資學程 第 1 組 | 全球微型即時天氣心情瓶"
+    },
+    en: {
+        appTitle: "Global Micro Weather Mood Bottle",
+        searchPlaceholder: "Enter city or country (e.g. Taipei, Tokyo)...",
+        searchBtn: "Search",
+        geoBtn: "My Location",
+        randomBtn: "Random",
+        cities: ["Taipei", "Tokyo", "New York", "London", "Paris"],
+        setHomeBtn: "Set as Base City",
+        feelsLike: "Feels Like",
+        humidity: "Humidity",
+        wind: "Wind",
+        pressure: "Pressure",
+        moodBoxTitle: "Today's Weather Mood Bottle",
+        breatheBtn: "Mindful Breathing",
+        soundBtn: "Ambient Sound",
+        soundPlaying: "Playing Sound",
+        healthBoxTitle: "Meteorological Health Advice",
+        symptomTitle: "Body Check-in (Click for meteorological health tips):",
+        symptoms: ["Energetic", "Sleepy", "Headache", "Joint Pain"],
+        postcardBtn: "Export Postcard",
+        moodTags: ["Relaxed", "Emotional", "Hopeful", "Homesick"],
+        msgPlaceholder: "Leave a blessing or mood for this city...",
+        postBtn: "Save",
+        passportTitle: "World Weather Passport",
+        passportExpand: "Show Stamps",
+        passportCollapse: "Hide Stamps",
+        footerText: "FJU Medical Informatics Group 1 | Global Micro Weather Mood Bottle"
+    }
+};
+
+const weatherDescDict = {
+    "晴": "Clear Sky",
+    "晴，少雲": "Few Clouds",
+    "多雲": "Scattered Clouds",
+    "陰": "Overcast Clouds",
+    "陰，多雲": "Broken Clouds",
+    "小雨": "Light Rain",
+    "中雨": "Moderate Rain",
+    "大雨": "Heavy Rain",
+    "陣雨": "Shower Rain",
+    "雷陣雨": "Thunderstorm",
+    "雪": "Snow",
+    "薄霧": "Mist",
+    "霧": "Fog",
+    "霾": "Haze"
+};
+
+const periodDict = {
+    "清晨朝氣": "Morning",
+    "午後時光": "Afternoon",
+    "黃昏日落": "Evening",
+    "靜謐深夜": "Late Night",
+    "白晝時光": "Daytime"
+};
+
+const tagDict = {
+    "愜意": "Relaxed",
+    "感性": "Emotional",
+    "希望": "Hopeful",
+    "想家": "Homesick"
+};
+
+const cityEnDict = {
+    "臺北市": "Taipei",
+    "台北": "Taipei",
+    "新北市": "New Taipei City",
+    "臺中市": "Taichung",
+    "台中": "Taichung",
+    "高雄市": "Kaohsiung",
+    "高雄": "Kaohsiung",
+    "臺南市": "Tainan",
+    "台南": "Tainan",
+    "桃園市": "Taoyuan",
+    "桃園": "Taoyuan",
+    "基隆市": "Keelung",
+    "新竹市": "Hsinchu",
+    "嘉義市": "Chiayi",
+    "宜蘭縣": "Yilan",
+    "花蓮縣": "Hualien",
+    "臺東縣": "Taitung"
+};
+
+let currentLang = "zh";
+
+// 建立右上角切換按鈕
+const langToggleBtn = document.createElement("button");
+langToggleBtn.id = "langToggleBtn";
+langToggleBtn.className = "capsule-btn";
+langToggleBtn.innerText = "EN / 中文";
+langToggleBtn.style.cssText = "position: fixed; top: 20px; right: 20px; z-index: 9999; font-weight: bold;";
+document.body.appendChild(langToggleBtn);
+
+langToggleBtn.addEventListener("click", () => {
+    currentLang = currentLang === "zh" ? "en" : "zh";
+    langToggleBtn.innerText = currentLang === "zh" ? "EN / 中文" : "中文 / EN";
+    applyFullLanguage();
+});
+
+function applyFullLanguage() {
+    const t = translations[currentLang];
+    const isEn = (currentLang === "en");
+
+    // 1. 靜態按鈕與輸入框
+    const titleEl = document.querySelector("h1");
+    if (titleEl) titleEl.innerText = t.appTitle;
+    if (cityInput) cityInput.placeholder = t.searchPlaceholder;
+    if (messageInput) messageInput.placeholder = t.msgPlaceholder;
+    if (searchBtn) searchBtn.innerText = t.searchBtn;
+    if (geoBtn) geoBtn.innerText = t.geoBtn;
+    if (randomBtn) randomBtn.innerText = t.randomBtn;
+    if (postMsgBtn) postMsgBtn.innerText = t.postBtn;
+    if (exportPostcardBtn) exportPostcardBtn.innerText = t.postcardBtn;
+    if (breatheToggleBtn) breatheToggleBtn.innerText = t.breatheBtn;
+    if (setHomeCityBtn) setHomeCityBtn.innerText = t.setHomeBtn;
+    if (soundToggleBtn) {
+        soundToggleBtn.innerText = isPlayingSound ? t.soundPlaying : t.soundBtn;
+    }
+
+    // 2. 快速城市按鈕
+    document.querySelectorAll(".city-chip").forEach((btn, idx) => {
+        if (t.cities[idx]) btn.innerText = t.cities[idx];
+    });
+
+    // 3. 身體自評與心情標籤按鈕
+    document.querySelectorAll(".symptom-btn").forEach((btn, idx) => {
+        if (t.symptoms[idx]) btn.innerText = t.symptoms[idx];
+    });
+    document.querySelectorAll(".mood-tag").forEach((btn, idx) => {
+        if (t.moodTags[idx]) btn.innerText = t.moodTags[idx];
+    });
+
+    // 4. 固定區塊標題文字替換
+    document.querySelectorAll("h2, h3, h4, span, div, p, footer").forEach(el => {
+        if (el.children.length > 0 && el.id !== "msgCityTitle" && el.id !== "passportToggleHeader") return;
+        const txt = el.innerText.trim();
+        if (txt === "體感溫度" || txt === "Feels Like") el.innerText = t.feelsLike;
+        if (txt === "濕度" || txt === "Humidity") el.innerText = t.humidity;
+        if (txt === "風速" || txt === "Wind") el.innerText = t.wind;
+        if (txt === "氣壓" || txt === "Pressure") el.innerText = t.pressure;
+        if (txt === "今日氣候心情瓶" || txt === "Today's Weather Mood Bottle") el.innerText = t.moodBoxTitle;
+        if (txt === "氣象身心健康提醒" || txt === "Meteorological Health Advice") el.innerText = t.healthBoxTitle;
+        if (txt.startsWith("此刻身體感受自評") || txt.startsWith("Body Check-in")) el.innerText = t.symptomTitle;
+        if (txt.includes("輔仁大學醫資學程") || txt.includes("FJU Medical Informatics")) el.innerText = t.footerText;
+    });
+
+    // 5. 動態資料與雙城對比（解決新北市英文化及只留括號前字眼）
+    const cityDisplay = document.getElementById("cityNameDisplay");
+    if (cityDisplay && currentCityState.name) {
+        cityDisplay.innerText = isEn ? (currentCityState.englishName || currentCityState.name) : currentCityState.name;
+    }
+
+    if (localTimeDisplay && currentCityState.localTimeStr) {
+        const pEn = periodDict[currentCityState.period] || "Daytime";
+        localTimeDisplay.innerText = isEn
+            ? `Local Time ${currentCityState.localTimeStr} ・ ${pEn}`
+            : `當地時間 ${currentCityState.localTimeStr} ・ ${currentCityState.period}`;
+    }
+
+    const condDisplay = document.getElementById("conditionDisplay");
+    if (condDisplay && currentCityState.weatherDesc) {
+        condDisplay.innerText = isEn
+            ? (weatherDescDict[currentCityState.weatherDesc] || currentCityState.weatherCondition)
+            : currentCityState.weatherDesc;
+    }
+
+    if (moodMessage && currentCityState.name) {
+        const cName = currentCityState.englishName || currentCityState.name;
+        if (isEn) {
+            moodMessage.innerText = `It is currently ${currentCityState.localTimeStr} in ${cName}. Take a deep breath and enjoy this peaceful moment.`;
+        } else {
+            moodMessage.innerText = currentCityState.moodText;
+        }
+    }
+
+    if (healthAdvice && currentCityState.pressure) {
+        if (isEn) {
+            healthAdvice.innerText = `Current atmospheric pressure is ${currentCityState.pressure} hPa with ${currentCityState.humidity}% humidity. Stay hydrated and maintain a regular rest schedule.`;
+        } else {
+            healthAdvice.innerText = generateHealthAdvice(
+                currentCityState.temp,
+                currentCityState.humidity,
+                currentCityState.pressure,
+                currentCityState.weatherCondition
+            );
+        }
+    }
+
+    // 基準城市對比區塊（只取括號前的城市名稱，並將新北市等轉為英文）
+    const savedHome = JSON.parse(localStorage.getItem("weatherHomeCity"));
+    if (savedHome && homeCityLabel && homeCompareText) {
+        let homeNameDisplay = savedHome.name;
+        if (isEn) {
+            // 只取括號前面的字（例如從 "新北市 (28°C)" 切出 "新北市"）
+            const cleanHomeName = savedHome.name.split("(")[0].trim();
+            homeNameDisplay = cityEnDict[cleanHomeName] || cleanHomeName;
+            
+            homeCityLabel.innerText = `Base City: ${homeNameDisplay} (${savedHome.temp}°C)`;
+            const diffTemp = currentCityState.temp - savedHome.temp;
+            const tempStr = diffTemp === 0 ? "the same temperature as" : (diffTemp > 0 ? `${diffTemp}°C warmer than` : `${Math.abs(diffTemp)}°C cooler than`);
+            const currentNameEn = currentCityState.englishName || currentCityState.name;
+            homeCompareText.innerText = `${currentNameEn} is ${tempStr} ${homeNameDisplay}.`;
+        } else {
+            updateHomeComparisonUI();
+        }
+    }
+
+    // 6. 留言板標題完美對應中英文（確保切回中文時能正確還原）
+    if (msgCityTitle && msgCityTitle.parentElement) {
+        const displayC = isEn ? (currentCityState.englishName || currentCityState.name) : currentCityState.name;
+        const capsuleText = isEn ? " ・ Cross-Time Mood Capsule" : "・跨時空心情膠囊";
+        
+        // 如果原本的父容器裡還有匯出明信片按鈕，我們只安全更新標題文字部分
+        const postcardBtnElem = document.getElementById("exportPostcardBtn");
+        
+        // 重新組裝標題 HTML，保留按鈕
+        let parentCard = msgCityTitle.closest(".card") || msgCityTitle.parentElement;
+        // 直接更新標題文字
+        msgCityTitle.innerText = displayC;
+        
+        //完美切換集章護照標題（解決文字重疊）
+        const passportHeaderSpan = document.querySelector("#passportToggleHeader span");
+        if (passportHeaderSpan) {
+        const count = JSON.parse(localStorage.getItem("weatherPassportStamps"))?.length || 0;
+        if (currentLang === "en") {
+            passportHeaderSpan.innerText = `World Weather Passport (${count} Stamps Collected)`;
+        } else {
+            passportHeaderSpan.innerText = `世界氣候集章護照（已收集 ${count} 座城市）`;
+        }
+    }
+        
+        // 尋找標題旁邊的文字節點或結尾
+        const titleContainer = msgCityTitle.parentElement;
+        if (titleContainer) {
+            // 確保標題後的文字正確切換
+            Array.from(titleContainer.childNodes).forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE && (node.textContent.includes("Cross-Time") || node.textContent.includes("跨時空"))) {
+                    node.textContent = capsuleText;
+                }
+            });
+        }
+    }
+
+    //完美切換集章護照標題與下方提示說明
+    const passportHeaderTitle = document.getElementById("passportHeaderTitle");
+    if (passportHeaderTitle) {
+        const count = JSON.parse(localStorage.getItem("weatherPassportStamps"))?.length || 0;
+        if (currentLang === "en") {
+            passportHeaderTitle.innerHTML = `World Weather Passport (${count} Stamps Collected)`;
+        } else {
+            passportHeaderTitle.innerHTML = `世界氣候集章護照（已收集 <span id="passportCount">${count}</span> 座城市）`;
+        }
+    }
+
+    if (passportToggleText) {
+        const isOpen = passportBody && passportBody.style.display !== "none";
+        passportToggleText.innerText = isOpen ? t.passportCollapse : t.passportExpand;
+    }
+
+    // 翻譯護照下方的提示文字
+    const passportDescEl = document.querySelector("#passportBody span, #passportBody p");
+    if (passportDescEl && passportDescEl.id !== "passportCount") {
+        if (currentLang === "en") {
+            passportDescEl.innerText = "Click any city stamp to teleport back and check its live weather.";
+        } else {
+            passportDescEl.innerText = "點擊任一城市印章，即可再次傳送至該地查看即時氣候。";
+        }
+    }
+
+    // 7. 留言板內的標籤與時間字樣翻譯
+    document.querySelectorAll("#messageList .msg-tag-badge").forEach(badge => {
+        let raw = (badge.getAttribute("data-zh") || badge.innerText).trim();
+        if (raw === "充滿希望") raw = "希望";
+        if (!badge.getAttribute("data-zh")) badge.setAttribute("data-zh", raw);
+        
+        if (isEn) {
+            badge.innerText = tagDict[raw] || raw;
+        } else {
+            badge.innerText = raw;
+        }
+    });
+
+    document.querySelectorAll("#messageList .msg-time").forEach(timeEl => {
+        let txt = timeEl.getAttribute("data-raw") || timeEl.innerText;
+        if (!timeEl.getAttribute("data-raw")) timeEl.setAttribute("data-raw", txt);
+        
+        if (isEn) {
+            timeEl.innerText = txt.replace("留存於 ", "Posted at ").replace(" (我)", " (Me)").replace(" (已編輯)", " (Edited)");
+        } else {
+            timeEl.innerText = txt;
+        }
+    });
+
+    // 8. 翻譯留言板內的「編輯」按鈕
+    document.querySelectorAll("#messageList .edit-btn").forEach(btn => {
+        btn.innerText = isEn ? "Edit" : "編輯";
+    });
+    
+    renderPassportStamps();
+}
