@@ -18,6 +18,7 @@
         <div class="search-box">
             <input type="text" id="cityInput" placeholder="輸入城市或國家 (如: 台北, 冰島, 委內瑞拉)...">
             <button id="searchBtn">搜尋</button>
+            <button id="geoBtn" title="使用GPS定位我的位置">定位</button>
             <button id="randomBtn" title="隨機撿起一瓶世界天氣">隨機</button>
         </div>
         <div class="quick-cities">
@@ -26,7 +27,6 @@
             <button class="city-chip" data-city="New York">紐約</button>
             <button class="city-chip" data-city="London">倫敦</button>
             <button class="city-chip" data-city="Paris">巴黎</button>
-            <button class="city-chip" data-city="Seoul">首爾</button>
         </div>
     </header>
 
@@ -41,7 +41,7 @@
             <!-- 當地即時時間與日夜狀態 -->
             <div class="local-time-badge" id="localTimeDisplay">當地時間載入中...</div>
 
-            <!-- 互動功能 5：雙城心靈時差與溫差對比 -->
+            <!-- 雙城心靈時差與溫差對比 -->
             <div class="home-compare-box">
                 <div class="home-compare-top">
                     <span id="homeCityLabel">我的基準城市：尚未設定</span>
@@ -86,7 +86,7 @@
                 </div>
                 <p id="moodMessage">正在為您準備今日的療癒小語...</p>
 
-                <!-- 互動功能 3：4-7-8 正念呼吸引導區 -->
+                <!-- 4-7-8 正念呼吸引導區 -->
                 <div id="breathingPanel" class="breathing-panel" style="display: none;">
                     <div class="breathing-visual">
                         <div id="breathingCircle" class="breathing-circle">準備</div>
@@ -99,7 +99,7 @@
                 </div>
             </div>
 
-            <!-- 醫資專業加值：氣象身心健康提醒 + 互動功能 1：身心狀態自評 -->
+            <!-- 醫資專業加值：氣象身心健康提醒 + 身心狀態自評 -->
             <div class="health-box">
                 <div class="health-title">氣象身心健康提醒</div>
                 <p id="healthAdvice">正在分析當地氣壓與溫濕度對身心的影響...</p>
@@ -118,7 +118,7 @@
         </div>
     </main>
 
-    <!-- 3. 互動留言板區（支援城市分流、心情貼紙 + 互動功能 2：明信片匯出） -->
+    <!-- 3. 互動留言板區（支援城市分流、心情貼紙 + 明信片匯出） -->
     <section class="message-section glass-card">
         <div class="message-header">
             <h3><span id="msgCityTitle">台北</span>・跨時空心情膠囊</h3>
@@ -140,7 +140,7 @@
         <ul id="messageList"></ul>
     </section>
 
-    <!-- 4. 互動功能 4：世界氣候集章護照 -->
+    <!-- 4. 世界氣候集章護照 -->
     <section class="passport-section glass-card">
         <div class="passport-header" id="passportToggleHeader">
             <h3>世界氣候集章護照（已收集 <span id="passportCount">0</span> 座城市）</h3>
