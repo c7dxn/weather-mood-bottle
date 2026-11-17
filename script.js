@@ -429,16 +429,29 @@ setHomeCityBtn.addEventListener("click", () => {
 
 function updateHomeComparisonUI() {
     const savedHome = JSON.parse(localStorage.getItem("weatherHomeCity"));
+    const isEn = (typeof currentLang !== "undefined" && currentLang === "en");
+
     if (!savedHome) {
-        homeCityLabel.innerText = "我的基準城市：尚未設定";
-        homeCompareText.style.display = "none";
+        homeCityLabel.innerText = isEn ? "Base City: Not set yet" : "我的基準城市：尚未設定";
+        if (homeCompareText) {
+            homeCompareText.innerText = isEn ? "Click 'Set as Base City' above to compare weather." : "點擊上方「設為我的城市」即可進行雙城氣候比對。";
+            homeCompareText.style.display = "block";
+        }
         return;
     }
 
-    homeCityLabel.innerText = `我的基準城市：${savedHome.name}（${savedHome.temp}°C）`;
+    const cleanHomeName = savedHome.name.split("(")[0].trim();
+    const homeNameDisplay = isEn ? (savedHome.englishName || cityEnDict[cleanHomeName] || cleanHomeName) : savedHome.name;
+    const currentNameDisplay = isEn ? (currentCityState.englishName || currentCityState.name) : currentCityState.name;
 
-    if (savedHome.name === currentCityState.name) {
-        homeCompareText.innerText = `您目前正位於基準城市「${savedHome.name}」，與當地零時差。`;
+    homeCityLabel.innerText = isEn 
+        ? `Base City: ${homeNameDisplay} (${savedHome.temp}°C)` 
+        : `我的基準城市：${savedHome.name}（${savedHome.temp}°C）`;
+
+    if (savedHome.name === currentCityState.name || cleanHomeName === currentCityState.name) {
+        homeCompareText.innerText = isEn 
+            ? `You are currently in your base city "${homeNameDisplay}", with zero time difference.` 
+            : `您目前正位於基準城市「${savedHome.name}」，與當地零時差。`;
         homeCompareText.style.display = "block";
         return;
     }
@@ -446,15 +459,24 @@ function updateHomeComparisonUI() {
     const diffHours = Math.round(((currentCityState.timezone - savedHome.timezone) / 3600) * 10) / 10;
     const diffTemp = currentCityState.temp - savedHome.temp;
 
-    const timeDiffDesc = diffHours === 0
-        ? `與${savedHome.name}零時差`
-        : (diffHours > 0 ? `比${savedHome.name}快 ${diffHours} 小時` : `比${savedHome.name}慢 ${Math.abs(diffHours)} 小時`);
+    if (isEn) {
+        const timeStr = diffHours === 0 ? "same time zone as" : (diffHours > 0 ? `${diffHours} hours ahead of` : `${Math.abs(diffHours)} hours behind`);
+        const tempStr = diffTemp === 0 ? "the same temperature as" : (diffTemp > 0 ? `${diffTemp}°C warmer than` : `${Math.abs(diffTemp)}°C cooler than`);
+        const periodEn = periodDict[currentCityState.period] || "Daytime";
 
-    const tempDiffDesc = diffTemp === 0
-        ? `氣溫與${savedHome.name}相同`
-        : (diffTemp > 0 ? `比${savedHome.name}溫暖 ${diffTemp}°C` : `比${savedHome.name}涼爽 ${Math.abs(diffTemp)}°C`);
+        homeCompareText.innerText = `${currentNameDisplay} is ${timeStr} ${homeNameDisplay}, and it is ${tempStr} ${homeNameDisplay} (${periodEn}).`;
+    } else {
+        const timeDiffDesc = diffHours === 0 
+            ? `與${savedHome.name}零時差` 
+            : (diffHours > 0 ? `比${savedHome.name}快 ${diffHours} 小時` : `比${savedHome.name}慢 ${Math.abs(diffHours)} 小時`);
+        
+        const tempDiffDesc = diffTemp === 0 
+            ? `氣溫與${savedHome.name}相同` 
+            : (diffTemp > 0 ? `比${savedHome.name}溫暖 ${diffTemp}°C` : `比${savedHome.name}涼爽 ${Math.abs(diffTemp)}°C`);
 
-    homeCompareText.innerText = `${currentCityState.name}${timeDiffDesc}，${tempDiffDesc}，當地正值${currentCityState.period}。`;
+        homeCompareText.innerText = `${currentCityState.name}${timeDiffDesc}，${tempDiffDesc}，當地正值${currentCityState.period}。`;
+    }
+
     homeCompareText.style.display = "block";
 }
 
@@ -1268,27 +1290,16 @@ function applyFullLanguage() {
     if (setHomeCityBtn) setHomeCityBtn.innerText = t.setHomeBtn;
     if (soundToggleBtn) {
         soundToggleBtn.innerText = isPlayingSound ? t.soundPlaying : t.soundBtn;
-        // 1. 自動將搜尋框內的文字轉為英文（若 API 有紀錄英文名稱）
+        // 在 applyFullLanguage() 裡面
     if (cityInput) {
         cityInput.placeholder = t.searchPlaceholder;
-        if (isEn) {
-            // 如果當前狀態有記錄英文名稱，或者字典裡查得到，就直接用英文
-            const fallbackEn = currentCityState.englishName || cityEnDict[cityInput.value.trim()] || "";
-            if (fallbackEn) {
-                cityInput.value = fallbackEn;
+        
+        // 如果當前是英文模式，且輸入框裡剛好是中文城市名，自動幫它轉成英文
+        if (isEn && cityInput.value) {
+            const cleanVal = cityInput.value.trim();
+            if (cityEnDict[cleanVal]) {
+                cityInput.value = cityEnDict[cleanVal];
             }
-        }
-    }
-
-    // 2. 主標題城市名稱自動切換英文（支援所有全球城市）
-    const cityDisplay = document.getElementById("cityNameDisplay");
-    if (cityDisplay && currentCityState.name) {
-        if (isEn) {
-            // 優先使用 API 的 englishName -> 其次查表 -> 若都沒有，則保留（或自動顯示）
-            const autoEnName = currentCityState.englishName || cityEnDict[currentCityState.name] || currentCityState.name;
-            cityDisplay.innerText = autoEnName;
-        } else {
-            cityDisplay.innerText = currentCityState.name;
         }
     }
     }
@@ -1369,23 +1380,43 @@ function applyFullLanguage() {
     }
 
     // 基準城市對比區塊（只取括號前的城市名稱，並將新北市等轉為英文）
-    const savedHome = JSON.parse(localStorage.getItem("weatherHomeCity"));
-    if (savedHome && homeCityLabel && homeCompareText) {
+    // 基準城市比對與未設定狀態的雙語切換
+const savedHome = JSON.parse(localStorage.getItem("weatherHomeCity"));
+if (homeCityLabel) {
+    if (savedHome) {
         let homeNameDisplay = savedHome.name;
-        if (isEn) {
-            // 只取括號前面的字（例如從 "新北市 (28°C)" 切出 "新北市"）
+        if (typeof isEn !== "undefined" && isEn) {
             const cleanHomeName = savedHome.name.split("(")[0].trim();
-            homeNameDisplay = cityEnDict[cleanHomeName] || cleanHomeName;
-            
+            homeNameDisplay = savedHome.englishName || cityEnDict[cleanHomeName] || cleanHomeName;
             homeCityLabel.innerText = `Base City: ${homeNameDisplay} (${savedHome.temp}°C)`;
-            const diffTemp = currentCityState.temp - savedHome.temp;
-            const tempStr = diffTemp === 0 ? "the same temperature as" : (diffTemp > 0 ? `${diffTemp}°C warmer than` : `${Math.abs(diffTemp)}°C cooler than`);
-            const currentNameEn = currentCityState.englishName || currentCityState.name;
-            homeCompareText.innerText = `${currentNameEn} is ${tempStr} ${homeNameDisplay}.`;
+            
+            if (homeCompareText) {
+                const diffTemp = currentCityState.temp - savedHome.temp;
+                const tempStr = diffTemp === 0 ? "the same temperature as" : (diffTemp > 0 ? `${diffTemp}°C warmer than` : `${Math.abs(diffTemp)}°C cooler than`);
+                const currentNameEn = currentCityState.englishName || currentCityState.name;
+                homeCompareText.innerText = `${currentNameEn} is ${tempStr} ${homeNameDisplay}.`;
+                homeCompareText.style.display = "block";
+            }
         } else {
-            updateHomeComparisonUI();
+            homeCityLabel.innerText = `我的基準城市：${savedHome.name}（${savedHome.temp}°C）`;
+            if (homeCompareText) {
+                const diffTemp = currentCityState.temp - savedHome.temp;
+                const cleanHomeName = savedHome.name.split("(")[0].trim();
+                const tempDiffDesc = diffTemp === 0 ? `氣溫與${cleanHomeName}相同` : (diffTemp > 0 ? `比${cleanHomeName}溫暖 ${diffTemp}°C` : `比${cleanHomeName}涼爽 ${Math.abs(diffTemp)}°C`);
+                homeCompareText.innerText = `${currentCityState.name}，${tempDiffDesc}，當地正值${currentCityState.period}。`;
+                homeCompareText.style.display = "block";
+            }
+        }
+    } else {
+        // 當尚未設定基準城市時的雙語切換
+        const isEnglish = (typeof isEn !== "undefined" && isEn);
+        homeCityLabel.innerText = isEnglish ? "Base City: Not set yet" : "我的基準城市：尚未設定";
+        if (homeCompareText) {
+            homeCompareText.innerText = isEnglish ? "Click 'Set as Base City' above to compare weather between cities." : "點擊上方「設為我的城市」即可進行雙城氣候比對。";
+            homeCompareText.style.display = "block";
         }
     }
+}
 
     // 6. 留言板標題完美對應中英文（確保切回中文時能正確還原）
     if (msgCityTitle && msgCityTitle.parentElement) {
