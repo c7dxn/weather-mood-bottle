@@ -1,4 +1,6 @@
 const API_KEY = "72dfce0768eb14284481f07a479bbbec";
+const FIREBASE_DB_URL = "https://weather-mood-bottle-default-rtdb.asia-southeast1.firebasedatabase.app";
+
 const searchBtn = document.getElementById("searchBtn");
 const geoBtn = document.getElementById("geoBtn");
 const randomBtn = document.getElementById("randomBtn");
@@ -16,6 +18,7 @@ let currentSearchId = 0;
 let currentActiveCity = "臺北市";
 let selectedMoodTag = "愜意";
 let currentWeatherType = "Clouds";
+let latestCloudCityMessages = [];
 
 let currentCityState = {
     name: "臺北市",
@@ -572,8 +575,6 @@ exportPostcardBtn.addEventListener("click", () => {
     ctx.lineTo(818, 272);
     ctx.stroke();
 
-    let messages = JSON.parse(localStorage.getItem("weatherMessagesV2")) || [];
-    const cityMsgs = messages.filter(m => m.city === currentCityState.name);
     const typedInput = messageInput.value.trim();
 
     let cardContent = currentCityState.moodText;
@@ -582,10 +583,10 @@ exportPostcardBtn.addEventListener("click", () => {
     if (typedInput) {
         cardContent = typedInput;
         cardLabel = `此刻心情（${selectedMoodTag}）：`;
-    } else if (cityMsgs.length > 0) {
-        const latest = cityMsgs[cityMsgs.length - 1];
+    } else if (latestCloudCityMessages.length > 0) {
+        const latest = latestCloudCityMessages[0];
         cardContent = latest.text;
-        cardLabel = `封存心情（${latest.tag}）：`;
+        cardLabel = `雲端心情（${latest.tag}）：`;
     }
 
     ctx.fillStyle = "#3b82f6";
@@ -827,11 +828,11 @@ async function updateUI(data, location, searchId) {
     recordCityStamp(displayCityName, finalEnglishName, temp, weatherDesc);
 
     msgCityTitle.innerText = displayCityName;
-    loadMessages();
+    await loadMessages();
 }
 
 // ==========================================
-// 8. 城市分流與心情貼紙留言板
+// 8. 雲端同步跨時空心情膠囊（Firebase Realtime Database）
 // ==========================================
 document.querySelectorAll(".mood-tag").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -841,56 +842,116 @@ document.querySelectorAll(".mood-tag").forEach(btn => {
     });
 });
 
-function saveAndRenderMessage() {
+function escapeHTML(str) {
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// 統一城市名稱鍵值（避免「台北」與「臺北市」分開儲存）
+function normalizeCityKey(cityName) {
+    return cityName.replace(/臺/g, "台").trim();
+}
+
+async function saveAndRenderMessage() {
     const userMsg = messageInput.value.trim();
     if (!userMsg) return;
 
     const now = new Date();
-    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const timeStr = `${month}/${day} ${hours}:${minutes}`;
 
-    let messages = JSON.parse(localStorage.getItem("weatherMessagesV2")) || [];
-    messages.push({
+    const newEntry = {
         city: currentActiveCity,
+        cityKey: normalizeCityKey(currentActiveCity),
         tag: selectedMoodTag,
         text: userMsg,
-        time: timeStr
-    });
+        time: timeStr,
+        timestamp: Date.now()
+    };
 
-    localStorage.setItem("weatherMessagesV2", JSON.stringify(messages));
-    messageInput.value = "";
-    loadMessages();
-}
+    postMsgBtn.disabled = true;
+    postMsgBtn.innerText = "儲存中...";
 
-function deleteMessage(globalIndex) {
-    let messages = JSON.parse(localStorage.getItem("weatherMessagesV2")) || [];
-    messages.splice(globalIndex, 1);
-    localStorage.setItem("weatherMessagesV2", JSON.stringify(messages));
-    loadMessages();
-}
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL}/capsules.json`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newEntry)
+        });
 
-function loadMessages() {
-    let messages = JSON.parse(localStorage.getItem("weatherMessagesV2")) || [];
-    const cityMessages = messages
-        .map((msg, idx) => ({ ...msg, globalIndex: idx }))
-        .filter(msg => msg.city === currentActiveCity);
+        if (!res.ok) {
+            throw new Error("雲端儲存失敗，請確認 Firebase 規則是否已設為測試模式。");
+        }
 
-    if (cityMessages.length === 0) {
-        messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">目前還沒有人留給「${currentActiveCity}」的膠囊，搶先寫下第一則吧！</li>`;
-        return;
+        messageInput.value = "";
+        await loadMessages();
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        postMsgBtn.disabled = false;
+        postMsgBtn.innerText = "儲存";
     }
+}
 
-    messageList.innerHTML = cityMessages.map(msg => `
-        <li>
-            <div class="msg-content">
-                <div class="msg-meta">
-                    <span class="msg-tag-badge">${(msg.tag || "愜意").replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "") || "愜意"}</span>
-                    <span class="msg-time">儲存於 ${msg.time}</span>
-                </div>
-                <span>${msg.text}</span>
-            </div>
-            <button class="delete-btn" onclick="deleteMessage(${msg.globalIndex})" title="刪除留言">✕</button>
-        </li>
-    `).join("");
+async function loadMessages() {
+    const targetCity = currentActiveCity;
+    const targetKey = normalizeCityKey(targetCity);
+    messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">正在讀取「${targetCity}」的雲端歷史膠囊...</li>`;
+
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL}/capsules.json`);
+        if (!res.ok) throw new Error("無法連線至雲端資料庫");
+
+        const data = await res.json();
+        if (targetCity !== currentActiveCity) return;
+
+        let allMessages = [];
+        if (data) {
+            allMessages = Object.keys(data).map(key => ({
+                id: key,
+                ...data[key]
+            }));
+        }
+
+        const cityMessages = allMessages
+            .filter(msg => (msg.cityKey || normalizeCityKey(msg.city || "")) === targetKey)
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        latestCloudCityMessages = cityMessages;
+
+        if (cityMessages.length === 0) {
+            messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">目前還沒有人留給「${targetCity}」的膠囊，搶先寫下第一則吧！</li>`;
+            return;
+        }
+
+        messageList.innerHTML = cityMessages.map(msg => {
+            const safeTag = escapeHTML((msg.tag || "愜意").replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "") || "愜意");
+            const safeTime = escapeHTML(msg.time || "");
+            const safeText = escapeHTML(msg.text || "");
+            return `
+                <li>
+                    <div class="msg-content">
+                        <div class="msg-meta">
+                            <span class="msg-tag-badge">${safeTag}</span>
+                            <span class="msg-time">留存於 ${safeTime}</span>
+                        </div>
+                        <span>${safeText}</span>
+                    </div>
+                </li>
+            `;
+        }).join("");
+    } catch (err) {
+        if (targetCity === currentActiveCity) {
+            messageList.innerHTML = `<li style="justify-content:center; color:#ef4444;">雲端留言載入失敗，請檢查網路或資料庫權限。</li>`;
+        }
+    }
 }
 
 // ==========================================
@@ -915,7 +976,7 @@ geoBtn.addEventListener("click", () => {
         },
         (error) => {
             alert("無法取得您的定位，請確認是否已授權瀏覽器存取位置。");
-            moodMessage.innerText = "定位失敗，請改用手動搜尋或點擊上方城市！";
+            moodMessage.innerText = "定位失敗，請改用手動搜尋或點擊城市！";
         },
         { timeout: 10000 }
     );
