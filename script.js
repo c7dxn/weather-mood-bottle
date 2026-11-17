@@ -964,7 +964,9 @@ async function editCloudMessage(messageId, currentText) {
 async function loadMessages() {
     const targetCity = currentActiveCity;
     const targetKey = normalizeCityKey(targetCity);
-    messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">正在讀取「${targetCity}」的雲端歷史膠囊...</li>`;
+    const isEn = (typeof currentLang !== "undefined" && currentLang === "en");
+
+    messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">${isEn ? `Loading capsules for "${targetCity}"...` : `正在讀取「${targetCity}」的雲端歷史膠囊...`}</li>`;
 
     try {
         const res = await fetch(`${FIREBASE_DB_URL}/capsules.json`);
@@ -988,32 +990,62 @@ async function loadMessages() {
         latestCloudCityMessages = cityMessages;
 
         if (cityMessages.length === 0) {
-            messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">目前還沒有人留給「${targetCity}」的膠囊，搶先寫下第一則吧！</li>`;
+            // 英文模式下優先使用英文城市名稱（若有），避免出現中文字
+            const displayCityName = isEn ? (currentCityState.englishName || targetCity) : targetCity;
+            messageList.innerHTML = `<li style="justify-content:center; color:#64748b;">${isEn ? `No capsules for "${displayCityName}" yet, be the first!` : `目前還沒有人留給「${targetCity}」的膠囊，搶先寫下第一則吧！`}</li>`;
             return;
         }
 
+        // 標籤中英文對應與正規化字典
+        const zhNormalizeDict = {
+            "充滿希望": "希望",
+            "Relaxed": "愜意",
+            "Emotional": "感性",
+            "Hopeful": "希望",
+            "Homesick": "想家"
+        };
+
+        const enTagDict = {
+            "愜意": "Relaxed",
+            "感性": "Emotional",
+            "希望": "Hopeful",
+            "想家": "Homesick"
+        };
+
         messageList.innerHTML = cityMessages.map(msg => {
-            const safeTag = escapeHTML((msg.tag || "愜意").replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "") || "愜意");
+            // 1. 一讀進來就把「充滿希望」轉為「希望」
+            let rawTag = (msg.tag || "愜意").trim();
+            const standardZhTag = zhNormalizeDict[rawTag] || rawTag;
+
+            // 2. 根據目前語言決定顯示中文或英文標籤
+            const displayTag = isEn ? (enTagDict[standardZhTag] || standardZhTag) : standardZhTag;
+
+            const safeTag = escapeHTML(displayTag);
             const safeTime = escapeHTML(msg.time || "");
             const safeText = escapeHTML(msg.text || "");
             
-            // 判斷是否為「我自己」發布的留言
             const isMyMessage = (msg.userId === myUserId);
+            const editText = isEn ? "Edit" : "編輯";
 
-            // 只有自己的留言才會顯示「編輯」與「刪除」按鈕
             const actionButtonsHtml = isMyMessage ? `
                 <div class="msg-action-btns">
-                    <button class="edit-btn" onclick="editCloudMessage('${msg.id}', '${safeText.replace(/'/g, "\\'")}')" title="編輯留言">編輯</button>
+                    <button class="edit-btn" onclick="editCloudMessage('${msg.id}', '${safeText.replace(/'/g, "\\'")}')" title="${editText}">${editText}</button>
                     <button class="delete-btn" onclick="deleteCloudMessage('${msg.id}')" title="刪除留言">✕</button>
                 </div>
             ` : '';
+
+            const formattedTime = isEn
+                ? safeTime.replace(" (我)", " (Me)").replace(" (已編輯)", " (Edited)")
+                : safeTime;
+            const timePrefix = isEn ? "Posted at " : "留存於 ";
+            const meSuffix = isMyMessage ? (isEn ? " (Me)" : " (我)") : "";
 
             return `
                 <li>
                     <div class="msg-content">
                         <div class="msg-meta">
-                            <span class="msg-tag-badge">${safeTag}</span>
-                            <span class="msg-time">留存於 ${safeTime}${isMyMessage ? ' (我)' : ''}</span>
+                            <span class="msg-tag-badge" data-zh="${escapeHTML(standardZhTag)}">${safeTag}</span>
+                            <span class="msg-time" data-raw="${escapeHTML(safeTime)}">${timePrefix}${formattedTime}${meSuffix}</span>
                         </div>
                         <span>${safeText}</span>
                     </div>
@@ -1022,8 +1054,9 @@ async function loadMessages() {
             `;
         }).join("");
     } catch (err) {
+        console.error("載入留言發生錯誤：", err);
         if (targetCity === currentActiveCity) {
-            messageList.innerHTML = `<li style="justify-content:center; color:#ef4444;">雲端留言載入失敗，請檢查網路或資料庫權限。</li>`;
+            messageList.innerHTML = `<li style="justify-content:center; color:#ef4444;">${isEn ? "Failed to load cloud messages." : "雲端留言載入失敗，請檢查網路或資料庫權限。"}</li>`;
         }
     }
 }
@@ -1190,7 +1223,15 @@ const cityEnDict = {
     "嘉義市": "Chiayi",
     "宜蘭縣": "Yilan",
     "花蓮縣": "Hualien",
-    "臺東縣": "Taitung"
+    "臺東縣": "Taitung",
+    // 國際城市與國家
+    "哥本哈根": "Copenhagen",
+    "秘魯": "Peru",
+    "日本": "Japan",
+    "美國": "United States",
+    "英國": "United Kingdom",
+    "法國": "France",
+    "布宜諾斯艾利斯": "Buenos Aires"
 };
 
 let currentLang = "zh";
@@ -1227,6 +1268,29 @@ function applyFullLanguage() {
     if (setHomeCityBtn) setHomeCityBtn.innerText = t.setHomeBtn;
     if (soundToggleBtn) {
         soundToggleBtn.innerText = isPlayingSound ? t.soundPlaying : t.soundBtn;
+        // 1. 自動將搜尋框內的文字轉為英文（若 API 有紀錄英文名稱）
+    if (cityInput) {
+        cityInput.placeholder = t.searchPlaceholder;
+        if (isEn) {
+            // 如果當前狀態有記錄英文名稱，或者字典裡查得到，就直接用英文
+            const fallbackEn = currentCityState.englishName || cityEnDict[cityInput.value.trim()] || "";
+            if (fallbackEn) {
+                cityInput.value = fallbackEn;
+            }
+        }
+    }
+
+    // 2. 主標題城市名稱自動切換英文（支援所有全球城市）
+    const cityDisplay = document.getElementById("cityNameDisplay");
+    if (cityDisplay && currentCityState.name) {
+        if (isEn) {
+            // 優先使用 API 的 englishName -> 其次查表 -> 若都沒有，則保留（或自動顯示）
+            const autoEnName = currentCityState.englishName || cityEnDict[currentCityState.name] || currentCityState.name;
+            cityDisplay.innerText = autoEnName;
+        } else {
+            cityDisplay.innerText = currentCityState.name;
+        }
+    }
     }
 
     // 2. 快速城市按鈕
@@ -1259,7 +1323,13 @@ function applyFullLanguage() {
     // 5. 動態資料與雙城對比（解決新北市英文化及只留括號前字眼）
     const cityDisplay = document.getElementById("cityNameDisplay");
     if (cityDisplay && currentCityState.name) {
-        cityDisplay.innerText = isEn ? (currentCityState.englishName || currentCityState.name) : currentCityState.name;
+        if (isEn) {
+            // 優先使用 englishName，若無則透過字典查找，若都沒有則保留原名或拼音
+            currentCityState.englishName = currentCityState.englishName || cityEnDict[currentCityState.name] || currentCityState.name;
+            cityDisplay.innerText = currentCityState.englishName;
+        } else {
+            cityDisplay.innerText = currentCityState.name;
+        }
     }
 
     if (localTimeDisplay && currentCityState.localTimeStr) {
