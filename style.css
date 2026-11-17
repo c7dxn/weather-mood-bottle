@@ -636,3 +636,28 @@ body.cloudy-theme { background-color: #334155; }
     text-align: center;
     text-shadow: 0 1px 4px rgba(0,0,0,0.6);
 }
+/* 留言操作按鈕容器（並排對齊） */
+.msg-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+/* 編輯與刪除按鈕統一去邊框、改為低調淺灰色 */
+.edit-btn,
+.delete-btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #94a3b8;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: color 0.2s ease;
+}
+
+/* 滑鼠移過去時稍微加深一點點，方便辨識點擊 */
+.edit-btn:hover,
+.delete-btn:hover {
+    color: #475569;
+}
